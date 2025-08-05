@@ -40,7 +40,7 @@ if os.getenv("GEMINI_API_KEY") is None:
 genai_client = Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-# Nodes
+# 创建langgraph的Nodes，下面每一个函数都是一个Node
 def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerationState:
     """LangGraph node that generates search queries based on the User's question.
 
@@ -60,26 +60,29 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
     if state.get("initial_search_query_count") is None:
         state["initial_search_query_count"] = configurable.number_of_initial_queries
 
-    # init Gemini 2.0 Flash
+    # init Gemini 2.0 Flash 初始化生成query的LLM
     llm = ChatGoogleGenerativeAI(
         model=configurable.query_generator_model,
         temperature=1.0,
         max_retries=2,
         api_key=os.getenv("GEMINI_API_KEY"),
     )
-    # 定义输出格式
+    # with_structured_output 严格定义LLM的输出格式
     structured_llm = llm.with_structured_output(SearchQueryList)
 
-    # Format the prompt
     current_date = get_current_date()
-    # 填充prompt的占位符需要的内容
+    # 填充prompt
     formatted_prompt = query_writer_instructions.format(
         current_date=current_date,
         research_topic=get_research_topic(state["messages"]),
         number_queries=state["initial_search_query_count"],
     )
-    # Generate the search queries
+    # 传入格式化的prompt后调用大模型生成SearchQueryList所需的数据
     result = structured_llm.invoke(formatted_prompt)
+
+    # 由于定义了输出格式，所以这里可以直接返回result.query
+    # result 是一个SearchQueryList对象，包含了query和rationale
+    # 这里的result.query是一个列表，包含了多个查询
     return {"search_query": result.query}
 
 
@@ -89,6 +92,8 @@ def continue_to_web_research(state: QueryGenerationState):
     This is used to spawn n number of web research nodes, one for each search query.
     """
     return [
+        # Send 是 LangGraph 中用于并行执行多个节点的特殊指令
+        # web_research的接受参数是WebSearchState, 需要将search_query和id封装成WebSearchState
         Send("web_research", {"search_query": search_query, "id": int(idx)})
         for idx, search_query in enumerate(state["search_query"])
     ]
@@ -270,26 +275,26 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
 # Create our Agent Graph
 builder = StateGraph(OverallState, config_schema=Configuration)
 
-# Define the nodes we will cycle between
+# 将函数注册为Node
 builder.add_node("generate_query", generate_query)
 builder.add_node("web_research", web_research)
 builder.add_node("reflection", reflection)
 builder.add_node("finalize_answer", finalize_answer)
 
-# Set the entrypoint as `generate_query`
-# This means that this node is the first one called
+# 设置generate_query为图的起始节点，这意味着这个node是第一个被调用的
 builder.add_edge(START, "generate_query")
-# Add conditional edge to continue with search queries in a parallel branch
+# 添加条件边以继续在并行分支中进行搜索查询
 builder.add_conditional_edges(
     "generate_query", continue_to_web_research, ["web_research"]
 )
-# Reflect on the web research
+# 反思网络研究
 builder.add_edge("web_research", "reflection")
-# Evaluate the research
+# 评估研究
 builder.add_conditional_edges(
     "reflection", evaluate_research, ["web_research", "finalize_answer"]
 )
 # Finalize the answer
 builder.add_edge("finalize_answer", END)
-
+# 编译图，并设置图的名称
+# 这将生成一个可以被调用的图对象
 graph = builder.compile(name="pro-search-agent")

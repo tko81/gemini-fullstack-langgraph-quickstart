@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableConfig
 
 class Configuration(BaseModel):
     """The configuration for the agent."""
-
+    # 不同的功能使用不同的模型
     query_generator_model: str = Field(
         default="gemini-2.0-flash",
         metadata={

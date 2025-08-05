@@ -26,6 +26,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # 这里定义了初始的 OverallState
     state = {
         "messages": [HumanMessage(content=args.question)],
         "initial_search_query_count": args.initial_queries,
@@ -33,6 +34,7 @@ def main() -> None:
         "reasoning_model": args.reasoning_model,
     }
 
+    # 这里调用整个图，LangGraph 会自动调用 generate_query
     result = graph.invoke(state)
     messages = result.get("messages", [])
     if messages:
