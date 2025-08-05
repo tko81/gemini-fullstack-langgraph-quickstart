@@ -67,10 +67,12 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
         max_retries=2,
         api_key=os.getenv("GEMINI_API_KEY"),
     )
+    # 定义输出格式
     structured_llm = llm.with_structured_output(SearchQueryList)
 
     # Format the prompt
     current_date = get_current_date()
+    # 填充prompt的占位符需要的内容
     formatted_prompt = query_writer_instructions.format(
         current_date=current_date,
         research_topic=get_research_topic(state["messages"]),
