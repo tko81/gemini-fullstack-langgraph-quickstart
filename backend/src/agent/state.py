@@ -12,6 +12,7 @@ import operator
 
 class OverallState(TypedDict):
     messages: Annotated[list, add_messages]
+    # 数据类型是列表 合并策略是"相加"（列表拼接）
     search_query: Annotated[list, operator.add]
     web_research_result: Annotated[list, operator.add]
     sources_gathered: Annotated[list, operator.add]

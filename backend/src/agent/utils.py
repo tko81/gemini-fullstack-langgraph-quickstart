@@ -32,7 +32,13 @@ def resolve_urls(urls_to_resolve: List[Any], id: int) -> Dict[str, str]:
     for idx, url in enumerate(urls):
         if url not in resolved_map:
             resolved_map[url] = f"{prefix}{id}-{idx}"
+    # 键是原始长 URL，值是短 URL
+    # 原始长 URL (150+ 字符)
+    # "https://en.wikipedia.org/wiki/artificial_intelligence?section=history&subsection=early_development&lang=en&redirect=true&mobile=false"
 
+    # 短 URL (50 字符)
+    # "https://vertexaisearch.cloud.google.com/id/123-0"
+    # 节省了 100+ 字符 = 节省处理成本
     return resolved_map
 
 

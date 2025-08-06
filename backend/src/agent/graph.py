@@ -85,7 +85,7 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
     # 这里的result.query是一个列表，包含了多个查询
     return {"search_query": result.query}
 
-
+# 继续进行web research的Node 后面应该连接web research的Node
 def continue_to_web_research(state: QueryGenerationState):
     """LangGraph node that sends the search queries to the web research node.
 
@@ -94,6 +94,7 @@ def continue_to_web_research(state: QueryGenerationState):
     return [
         # Send 是 LangGraph 中用于并行执行多个节点的特殊指令
         # web_research的接受参数是WebSearchState, 需要将search_query和id封装成WebSearchState
+        # 将每个search query包装为WebSearchState 并发送到多个web research节点
         Send("web_research", {"search_query": search_query, "id": int(idx)})
         for idx, search_query in enumerate(state["search_query"])
     ]
@@ -123,7 +124,11 @@ def web_research(state: WebSearchState, config: RunnableConfig) -> OverallState:
         model=configurable.query_generator_model,
         contents=formatted_prompt,
         config={
-            "tools": [{"google_search": {}}],
+            "tools": [                  # 工具列表
+                {                       # 第一个工具对象
+                    "google_search": {} # 工具名: 工具配置
+                }
+            ],
             "temperature": 0,
         },
     )

@@ -39,6 +39,11 @@ class Configuration(BaseModel):
         metadata={"description": "The maximum number of research loops to perform."},
     )
 
+    # classmethod装饰器的方法 可以直接通过类调用，不需要先创建实例 类似于静态方法
+    # 从多个数据源创建一个 Configuration 对象，数据源的优先级是：
+    # 环境变量（最高优先级）
+    # RunnableConfig 中的配置
+    # Field 中的默认值（最低优先级）
     @classmethod
     def from_runnable_config(
         cls, config: Optional[RunnableConfig] = None
@@ -50,11 +55,17 @@ class Configuration(BaseModel):
 
         # Get raw values from environment or config
         raw_values: dict[str, Any] = {
+            # 先查环境变量（转为大写） 如果环境变量不存在，则查 configurable
             name: os.environ.get(name.upper(), configurable.get(name))
             for name in cls.model_fields.keys()
         }
 
         # Filter out None values
+        # 只保留raw_values中的 非 None 的值 保存到 values 中
         values = {k: v for k, v in raw_values.items() if v is not None}
 
+        # 最后创建 Configuration 实例 这里的 cls 是 Configuration 类本身
+        # cls(**values) 会调用 Configuration 的构造函数 并传入 values 中的键值对作为参数
+        # 这样就可以创建一个新的 Configuration 实例
+        # **关键字参数解包 将字典"拆开"成关键字参数
         return cls(**values)
