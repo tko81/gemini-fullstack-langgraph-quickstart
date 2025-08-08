@@ -56,10 +56,19 @@ def insert_citation_markers(text, citations_list):
     Returns:
         str: The text with citation markers inserted.
     """
-    # Sort citations by end_index in descending order.
-    # If end_index is the same, secondary sort by start_index descending.
-    # This ensures that insertions at the end of the string don't affect
-    # the indices of earlier parts of the string that still need to be processed.
+    # 逆序排序策略：从文本末尾开始插入引用标记，避免插入操作改变后续位置的索引，确保所有索引位置始终有效
+    # 举例:
+    # 原文: "AI技术发展很快。机器学习应用广泛。"
+    # 引用位置: [0-6] 和 [8-14]
+
+    # 如果从前往后插入：
+    # 1. 在位置6插入 "[ref1]" → "AI技术发展很快[ref1]。机器学习应用广泛。"
+    # 2. 原来的位置14现在变成了19！索引失效
+
+    # 如果从后往前插入：
+    # 1. 在位置14插入 "[ref2]" → "AI技术发展很快。机器学习应用广泛[ref2]。"
+    # 2. 在位置6插入 "[ref1]" → "AI技术发展很快[ref1]。机器学习应用广泛[ref2]。"
+    #    索引6仍然有效！
     sorted_citations = sorted(
         citations_list, key=lambda c: (c["end_index"], c["start_index"]), reverse=True
     )
@@ -72,6 +81,9 @@ def insert_citation_markers(text, citations_list):
         end_idx = citation_info["end_index"]
         marker_to_insert = ""
         for segment in citation_info["segments"]:
+            # 这里将多个引用源组合成Markdown格式的链接：
+                # [label]: 显示的文本（通常是网站标题）
+                # (short_url): 实际的链接地址（短链接）
             marker_to_insert += f" [{segment['label']}]({segment['short_url']})"
         # Insert the citation marker at the original end_idx position
         modified_text = (
