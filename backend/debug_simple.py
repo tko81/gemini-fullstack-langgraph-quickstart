@@ -15,11 +15,16 @@ sys.path.insert(0, str(src_dir))
 
 from langchain_core.messages import HumanMessage
 from agent.graph import graph
+from langsmith import Client
 
 
 def debug_simple_query():
     """调试简单查询功能"""
     print("🔍 开始调试简单查询...")
+    
+    # 配置 LangSmith 追踪
+    run_name = "debug-research-query"
+    print(f"📊 LangSmith 追踪已启用，运行名称: {run_name}")
     
     # 在这里设置断点！
     state = {
@@ -32,7 +37,9 @@ def debug_simple_query():
     
     # 在这里设置断点查看graph.invoke的执行过程
     try:
-        result = graph.invoke(state)
+        # 使用追踪配置调用 graph
+        config = {"run_name": run_name}
+        result = graph.invoke(state, config=config)
         print("✅ 查询成功完成!")
         
         # 在这里设置断点查看结果
@@ -43,6 +50,12 @@ def debug_simple_query():
             print("❌ 没有收到回答")
             
         print(f"🔗 收集的源: {len(result.get('sources_gathered', []))}个")
+        
+        # 打印 LangSmith 链接提示
+        print("\n🌐 查看 LangSmith 追踪:")
+        print("1. 访问 https://smith.langchain.com")
+        print(f"2. 在项目 'gemini-research-agent' 中查找运行 '{run_name}'")
+        print("3. 点击运行记录查看详细的流程图和执行步骤")
         
     except Exception as e:
         print(f"❌ 执行失败: {e}")
